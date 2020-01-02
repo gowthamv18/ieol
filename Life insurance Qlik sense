@@ -1,0 +1,300 @@
+Agency:
+CROSSTABLE (Measurement,[number],7)
+LOAD
+    Category,
+    Name as Agent_Name,
+    Region as AG_Region,
+    "Branch Code(PS)" as "AG_Branch_Code(PS)",
+    Position as AG_Position,
+    "DG Name",
+    "WG Name",
+    "2018-ANP",
+    "2017-ANP",
+    "2016-ANP",
+    "2015-ANP",
+    "2014-ANP",
+    "2013-ANP",
+    "2018-ACS",
+    "2017-ACS",
+    "2016-ACS",
+    "2015-ACS",
+    "2014-ACS",
+    "2013-ACS",
+    "2018-PR",
+    "2017-PR",
+    "2016-PR",
+    "2015-PR",
+    "2014-PR",
+    "2013-PR",
+    "2018-AR",
+    "2017-AR",
+    "2016-AR",
+    "2015-AR",
+    "2014-AR",
+    "2013-AR",
+    "2018-MP",
+    "2017-MP",
+    "2016-MP",
+    "2015-MP",
+    "2014-MP",
+    "2013-MP"
+FROM [lib://Life Insurance/AGENCY DATA.xls]
+(biff, embedded labels, table is [AGENCY DATA$]);
+
+// Additional:
+// CROSSTABLE ([AGENCY DATA$.Attribute field],[number],7)
+// LOAD
+// 	*
+// resident Agency
+// ;
+// Drop Tables Agency;
+// exit script
+// ;
+Agency1:
+Load
+	*,
+	Agent_Name &'|'& AG_Year &'|'& [AG_Branch_Code(PS)] &'|'& [DG Name] &'|'& [WG Name]as AgentKey2;
+Load 
+	*,
+    [number] as TY_Value,
+    year(Date#(SubField(Measurement,'-',1),'yyyy')) as  AG_Year,    
+    SubField(Measurement,'-',2) as Types
+resident Agency;
+drop tables Agency;
+
+
+//Name &'|'& Region &'|'& [Branch Code(PS)] &'|'& [DG Name]&'|'& [WG Name] as AgentKey
+// exit script;
+
+
+Left Join
+Agency2:
+
+Load
+// Name &'|'& AG_Year &'|'& Category &'|'& Types as AG_Key,
+Category,
+Agent_Name,
+Types,
+AG_Year +1 as AG_Year,
+[number] as LY_Value
+Resident Agency1;
+
+
+
+
+// exit script;
+
+// Left Join
+// Agency2:
+// Load
+// AG_Year +1 as AG_Year,
+// [number]
+
+// Resident Agency1;
+// Drop Tables Agency, Additional;
+// drop Field [AGENCY DATA$.Attribute field];
+
+**********************************************************************************
+DATA_Unit:
+LOAD    
+    Name,
+    Region,
+    "Branch Code(PS)",
+    "DG Name" as [USM Name],
+    "WG Name" as [GSM Name],  
+    Position,
+    "TY-JAN",
+    "LY-JAN",
+    "TY-FEB",
+    "LY-FEB",
+    "TY-MAR",
+    "LY-MAR",
+    "TY-APR",
+    "LY-APR",
+    "TY-MAY",
+    "LY-MAY",
+    "TY-JUN",
+    "LY-JUN",
+    "TY-JUL",
+    "LY-JUL",
+    "TY-AUG",
+    "LY-AUG",
+    "TY-SEP",
+    "LY-SEP",
+    "TY-OCT",
+    "LY-OCT",
+    "TY-NOV",
+    "LY-NOV",
+    "TY-DEC",
+    "LY-DEC"
+  
+FROM [lib://Life Insurance/DATA.xls]
+(biff, embedded labels, table is [AGENCY DATA$])
+where len(trim(Name))>0;
+
+
+
+[Premium_Unit]:
+CROSSTABLE ([Date],[Count],6)
+LOAD
+	*
+resident DATA_Unit;
+
+[Premium_Unit1]:
+Load
+	*,
+   Name &'|'& Region &'|'& [Branch Code(PS)] &'|'& [USM Name] as AgentKey1,
+	[GSM Name]&'|'& Year  as ActKey_Y,
+    [GSM Name]&'|'&[USM Name]&'|'& Year &'|'& Month  as ActKey_YM,
+    Name &'|'& Region &'|'& [Branch Code(PS)] &'|'& [USM Name]&'|'& [GSM Name]  &'|'& Year as AgentYearKey;
+Load
+	*,
+    Date#(SubField([Date],'-',2),'MMM') as Month,
+    if(SubField([Date],'-',1)='TY',2018,2017) as Year
+Resident [Premium_Unit];
+drop Field Date;
+drop tables [Premium_Unit],DATA_Unit;
+**************************************************************************************************************
+Agent_Activity1:
+Load	
+	[GSM Name],
+    [USM Name],
+    Year,
+    Month,
+    Count(Count) as ActAG
+Resident Premium_Unit1
+Where Count > 0 and (Position='CA' or Position='AGT') 
+Group by [GSM Name],[USM Name],Year,Month;
+
+join
+Table_Act1:
+Load	
+    [GSM Name],
+    [USM Name],
+    Year,
+    Month,
+    Count(DISTINCT Name) as TotAG
+Resident Premium_Unit1
+Where (Position='CA' or Position='AGT')
+Group by  [GSM Name],[USM Name],Year,Month;
+
+Agent_Activity2:
+Load
+	[GSM Name]&'|'&[USM Name]&'|'& Year &'|'& Month  as ActKey_YM,
+    [GSM Name],
+//    [USM Name],
+    Year,
+    Month,
+    ActAG,
+    TotAG,
+    ActAG/TotAG as Act_Rate_mth
+Resident Agent_Activity1;
+
+Agent_Activity3:
+Load
+	[GSM Name]&'|'& Year  as ActKey_Y,
+    Year,
+    ActAG_Grp,
+    TotAG_Grp,
+	ActAG_Grp/TotAG_Grp as Act_Rate;
+Load
+	Year,
+    [GSM Name],
+    sum(ActAG) as ActAG_Grp,
+    sum(TotAG) as TotAG_Grp
+Resident Agent_Activity2
+group by Year,[GSM Name];
+
+
+Agent_Activity4:
+Load
+	*,
+	ActAG_Com/TotAG_Com as Act_Rate_Benchmark;
+Load
+	Year,
+    sum(ActAG_Grp) as ActAG_Com,
+    sum(TotAG_Grp) as TotAG_Com
+Resident Agent_Activity3
+group by Year;
+
+ drop Fields Year,Month,[GSM Name] from Agent_Activity2;
+ drop Fields Year from Agent_Activity3;
+
+ Drop Tables Agent_Activity1;
+  ***********************************************************************************
+  Data_Value:
+LOAD
+    Name,
+    Region,
+    "Branch Code(PS)",
+//    Position,
+    "DG Name" as [USM Name],
+    "WG Name" as [GSM Name],
+    "TY-ANP (Trad)",
+    "LY-ANP (Trad)",
+    "TY-ANP (ILP)",
+    "LY-ANP (ILP)"
+FROM [lib://Life Insurance/DATA.xls]
+(biff, embedded labels, table is [AGENCY DATA$])
+where len(trim(Name))>0;
+
+[Premium_Value]:
+CROSSTABLE ([Date_Value],[Value],5)
+LOAD
+	*
+resident Data_Value;
+
+
+[Premium_Value1]:
+Load
+	*,
+    Name &'|'& Region &'|'& [Branch Code(PS)] &'|'& [USM Name]&'|'& [GSM Name] as AgentKey,
+    Name &'|'& Region &'|'& [Branch Code(PS)] &'|'& [USM Name]&'|'& [GSM Name]  &'|'& Year as AgentYearKey;
+Load
+	*,
+    if(SubField([Date_Value],'-',1)='TY',2018,2017) as Year,
+    if(SubField([Date_Value],'(',2)='ILP)','Investment Link','Traditional') as Type    
+Resident [Premium_Value];
+drop Field [Date_Value];
+drop table Data_Value, [Premium_Value];
+
+Store Premium_Value1 into [lib://Life Insurance/Premium_all.csv](txt);
+
+LOAD
+    Name &'|'& Region &'|'& [Branch Code(PS)] &'|'& [USM Name]&'|'& [GSM Name] as AgentKey,
+    Name &'|'& Region &'|'& [Branch Code(PS)] &'|'& [USM Name]&'|'& [GSM Name]  &'|'& Year as AgentYearKey,
+    Name,
+    Region,
+    "Branch Code(PS)",
+    "USM Name",
+    "GSM Name",
+    Value,
+    "Year",
+    "Type"
+FROM [lib://Life Insurance/Premium_history.csv]
+(txt, utf8, embedded labels, delimiter is ',', msq);
+
+
+
+Store Premium_Value1 into [lib://Life Insurance/Premium_Value1.csv](txt);
+**********************************************************************************************************
+FACT TABLE::
+
+[Dimension]:
+LOAD
+    Gender,
+    Name,
+    Region,
+    "Branch Code(PS)",
+    Position,
+    "DG Name" as [USM Name],
+    "WG Name" as [GSM Name],
+    If([WG Name]=[DG Name],'GSMDG','USMDG') as UnderDG,
+ 	Name &'|'& Region &'|'& [Branch Code(PS)] &'|'& [DG Name]&'|'& [WG Name] as AgentKey,
+    Name &'|'& Region &'|'& [Branch Code(PS)] &'|'& [DG Name]&'|'& [WG Name] as AgentKey2
+FROM [lib://Life Insurance/DATA.xls]
+(biff, embedded labels, table is [AGENCY DATA$])
+where len(trim(Name))>0 and len(trim([DG Name]))> 0;
+*************************************************************************************************
+drop Fields  Name, Region, [Branch Code(PS)], [USM Name], [GSM Name], Gender, Position from [Premium_Value1];
+drop Fields  Name, Region, [Branch Code(PS)], [USM Name],[GSM Name],Year,Gender, Position from [Premium_Unit1];
