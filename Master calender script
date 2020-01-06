@@ -1,0 +1,56 @@
+Master calender script
+----------------------
+
+
+
+Let varMinDate = num(MakeDate(2016,01,01));
+Let varMaxDate = num(YearEnd(Today()),1);                                       //num(Floor(MonthEnd(Today())));
+
+/*Auto populate the Calendar Table from varMinDate to varMaxDate*/
+TempCalendar:
+LOAD
+  $(varMinDate) + Iterno()-1 As Num,
+  Date($(varMinDate) + IterNo() - 1) as TempDate
+AutoGenerate 1 While $(varMinDate) + IterNo() -1 <= $(varMaxDate);
+
+/*Derive all the Calendar Fields as selections based on TempDate*/
+Calendar:
+Load
+                TempDate,
+                Num(Date(TempDate)) as DateNum,
+                Date(TempDate) as Date,                                             /*KEY*/
+                week(TempDate) as Week,
+                Year(TempDate) as Year,
+//            num(Year(TempDate)) as YearNum,
+               Month(TempDate) as Month,
+                Num(Month(TempDate)) as  MonthNum,
+    Num(Month(TempDate)) as Period,
+                Day(TempDate) as Day,
+                Date(MonthStart(TempDate), 'MMM-YYYY') as MonthYearD,
+                Text(Date(MonthStart(TempDate), 'MMM-YYYY')) as MonthYear,
+                WeekDay(TempDate) as WeekDay,
+                Date(TempDate)&'('&WeekDay(TempDate)&')' as DateDayName,
+    'Calendar' as CalType
+Resident TempCalendar
+Order By TempDate asc;
+
+
+Concatenate(Calendar)
+Fiscal:
+LOAD
+                DateNum,
+                Date,
+    Week,
+    Year(YearStart(TempDate,1,3)) as Year,
+    Month,
+    MonthNum,
+    if(MonthNum>2,MonthNum-2,MonthNum+10) as Period,
+    Day,
+    MonthYearD,
+    MonthYear,
+    WeekDay,
+    DateDayName,
+    'Fiscal' as CalType
+Resident Calendar;
+
+Drop Table TempCalendar;
