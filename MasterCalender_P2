@@ -1,0 +1,49 @@
+Quartersmap:
+Mapping Load
+RowNo() as Month,
+'Q' & Ceil(RowNo()/3)as Quarter
+AutoGenerate (12);
+
+
+Halfyearsmap:
+Mapping Load
+RowNo() as Month,
+'HY' & ceil(RowNo()/6) as HalfYear
+AutoGenerate (12);
+
+
+Temp:
+LOAD
+Min(REPORT_DATE) as Mindate,
+Max(REPORT_DATE) as Maxdate
+Resident LINKTABLE2;
+
+
+LET vmindate= Num(Peek('Mindate',0,'Temp'));
+LET vmaxdate= Num(Peek('Maxdate',0,'Temp'));
+
+DROP Table Temp;
+
+Calendar:
+LOAD
+$(vmindate) + IterNo() -1 as Num,
+Date($(vmindate) + IterNo() -1) as Date
+AutoGenerate 1
+While
+($(vmindate) + IterNo() -1)<= $(vmaxdate);
+
+Master_Cal:
+LOAD  
+Floor(Date) as REPORT_DATE,
+//Floor(Date) as REPORT_DATE1,
+Year(Date) as Year,
+ApplyMap('Quartersmap',Month(Date),Null()) as Quarter,
+ApplyMap('Halfyearsmap',Month(Date),Null()) as HalfYear,
+Month(Date) as Month,
+MonthName(Date) as MonthName,
+Day(Date) as Day,
+YearToDate(Date) as YTD,
+Week(Date) as Week
+Resident Calendar;
+
+DROP Table Calendar;
