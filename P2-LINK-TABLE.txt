@@ -1,0 +1,1244 @@
+MAP_ROMSTR:
+MAPPING LOAD Distinct   
+    RO_RONO,
+    RO_VCPROFILEID
+FROM [lib://Transformed/T_SVC_RO_MSTR.qvd]
+(qvd);
+
+/////////////////////////////////////////////////////////
+
+D_OUTLET_MSTR:
+LOAD
+    *
+FROM [lib://Transformed/D_OUTLET_MSTR.qvd]
+(qvd);
+
+////////////////////////////////////////////
+
+ADVISOR:
+LOAD
+    %STAFF_KEY,
+//    STAFFID,
+    SVCADVISORNO,
+    SVC_SVCADVISORNAME
+//     Svc_Ad_STAFFID,
+//     Svc_Ad_OUTLETID,
+//     Svc_Ad_OUTLETCODE
+FROM [lib://Transformed/T_SVC_ADVISOR_MSTR.qvd]
+(qvd);
+
+//////////////////////////////////////////////////////
+
+PART:
+LOAD
+    *
+FROM [lib://Transformed/D_PART_MSTR.qvd]
+(qvd);
+//drop Field PARTNO From PART;
+
+
+/////////////////////////////////////////////////////
+
+PI_CODE_DTL:
+LOAD
+    ROTYPE,
+    REPAIRTYPE
+FROM [lib://Transformed/T_PI_CODE_DTL.qvd]
+(qvd);
+
+/////////////////////////////////////////////////////
+
+D_VEH_MSTR:
+LOAD
+    MAKEID,
+    MFAMILYID,
+    MVARIANTID,
+    MVARIANTCODE,
+    MVARIANTDESC,
+    MFAMILYCODE,
+    MFAMILYDESC,
+    MAKECODE,
+    MAKEDESC,
+//    RECSTATUS,
+//    STATUS,
+//    CREATEDBY,
+//    CREATEDDATETIME,
+//    UPDATEDBY,
+//    UPDATEDDATETIME,
+    PNPFLAG
+FROM [lib://Transformed/D_VEH_MSTR.qvd]
+(qvd);
+
+//////////////////////////////////////////////////////////////
+
+D_INSCOMP_MSTR:
+LOAD
+    INSCOMPID,
+//    INSCOMPCODE,
+    INSCOMPNAME
+//    PAYMENTTERMCODE,
+//    INSTYPE
+FROM [lib://Transformed/D_INSCOMP_MSTR.qvd]
+(qvd);
+
+////////////////////////////////////////////////////////////////
+
+RO_MASTER:
+LOAD
+//    %RO_MSTR,
+//	SVCADVISORID &'|'& OUTLETID&'|'&ROID&'|'&RO_MVARIANTID as %RO_MSTR,
+    ROID&'|'&OUTLETID as %ROKey,
+    ROID,
+//    TASK_ROID,
+    RO_RONO,
+    1 as R_Intake,   
+    ROTYPE,
+    RDate,
+    todate,
+    BP_Flag,
+    PendingRODays,
+    RODATE,
+    Arrival_Date,
+    Mstr_Status,
+    OUTLETID,
+//    SVC_OUTLETCODE,
+    Vehicle_No,
+    SUPID,
+    RO_VCPROFILEID,
+    SVCADVISORID,
+    RO_MVARIANTID,
+    CUSTPROFILEID,
+    INSCOMPID,
+    ACTIONTAKEN,
+//    CHASSISNO,
+//    ENGINENO,
+    INSAPPAMT,
+    RO_INSEXCESSAMT,
+    INSBETTERMENTAMT,
+    CURRMILEAGE,
+    CUSTCOMPLAINTREMARK,
+    RO_CREATEDDATETIME,
+    SUBTOTAL,
+    TAXAMOUNT,
+    TOTALAMOUNT,
+    INCLUDETAX,
+    INSEXCESSTAXCODE,
+    INSEXCESSGSTAMT,
+    INSBETTERMENTTAXCODE,
+    INSBETTERMENTGSTAMT,
+    INVDATE as R_INVDATE,
+    WTYSTATUS,
+    PendingFlag,
+    Pending_Range,
+    Pending_Sort
+FROM [lib://Transformed/T_SVC_RO_MSTR.qvd]
+(qvd)
+where Year(RDate)>$(vYear) and match(OUTLETID,79,10549,2101)>0;;
+
+MAP_VARIANT:
+mapping Load Distinct
+	ROID,
+    RO_MVARIANTID
+Resident RO_MASTER;
+
+// RO_OP:
+// Load
+// 	*
+// FROM [lib://Transformed/T_SVC_RO_OP.qvd]
+// (qvd);
+
+
+// RO_OP_PART:
+// Load
+// 	*
+// FROM [lib://Transformed/T_SVC_RO_OP_PART.qvd]
+// (qvd);
+
+// RECEPTION:
+// Load
+// 	*
+// FROM [lib://Transformed/T_SVC_RECEPTION.qvd]
+// (qvd);
+
+
+///////////////////////////////////////////////////////////////
+
+Fact_Warranty:
+LOAD
+    ROINVNO &'|'& SVCADVISORID &'|'& ROID &'|'& Floor(ROINVDATE) &'|'& OUTLETID as %F_Warranty,
+    ROID,
+    %WINV_Key2,
+    ROINVID,
+    WCFID,
+    WCFNO,
+    RONO,
+    ROINVNO,
+    WTYINCID,
+    STATUS as W_STATUS,
+    PAYMENTSTATUS,
+    PAYMENTDATE,
+    REFNO,
+    WTYAMT,
+    ROINVDATE,
+    CLAIMTRAVELDATE,
+    CUSTPROFILEID,
+    RO_ROID,
+//    RODATE,
+    OUTLETID,
+    SVCADVISORID,
+    VEHNO,
+    MVCODE,
+//     CUSTNAME,
+    WTYAIDCODE,
+    WTYTYPE,
+    WCFTYPE,
+    WCSREFNO,
+    FRSSUBMSTRID,
+    FRSSUBDTLID
+FROM [lib://Transformed/Fact_Warranty.qvd]
+(qvd)
+where match(OUTLETID,79,10549,2101)>0;
+
+///////////////////////////////////////////////////////////////////////
+
+DEAD_STOCK:
+LOAD
+    OUTLETID&'|'&PARTID&'|'& BINLOTID as %PDB_Key,
+    *
+FROM [lib://Transformed/Dead_Stock_Report.qvd]
+(qvd)
+where match(OUTLETID,79,10549,2101)>0;
+
+
+
+////////////////////////////////////////////////////////////////////
+
+Outstanding:
+LOAD
+    SVCADVISORID &'|'&OUTLETID&'|'&SnapShotDate as %Outstanding,
+//    "MIN",
+//    "MAX",
+    Aging as O_Aging,
+    SVCADVISORID,
+    OUTLETID,
+    ROINVDATE as O_ROINVDATE,
+    ROINVNO as O_ROINVNO,
+    OUTSTANDINGAMOUNT,
+    ROINVTYPECODE as O_ROINVTYPECODE,
+    SUBTOTAL as O_SUBTOTAL,
+    TOTALAMOUNT as O_TOTALAMOUNT,
+    TAXMETHOD AS O_TAXMETHOD,
+    INVTYPE,
+    RONO,
+    REGNO,
+    INSCOMPID,
+    ACTIONTAKEN as O_ACTIONTAKEN,
+    CUSTNAME,
+    SVCADVISORNAME as O_SVCADVISORNAME,
+    SnapShotDate,
+    OUTSTANDING_GRP,
+    OUTSTANDING_SORT
+FROM [lib://Transformed/Outstanding_*.qvd]
+(qvd)
+where match(OUTLETID,79,10549,2101)>0;
+
+left join
+Load Distinct
+	date(max(SnapShotDate),'DD/MM/YYYY') as SnapShotDate, 
+	1 as fresh_Outstanding 
+Resident Outstanding;
+
+///////////////////////////////////////////////////////////////////////
+
+Fact_RO_REV:
+LOAD
+	TASK_ROID&'|'&RO_OUTLETID as %ROKey,
+    REGNO,
+    MECHID,
+    TASK_ROID,
+    ROID,
+    RO_RONO as REV_RONO ,    
+    RO_ROTYPE,
+//     RDate,
+    RO_OUTLETID,
+    RO_SVCADVISORID,
+    RO_VCPROFILEID,
+    RO_CUSTPROFILEID,
+    RO_INSCOMPID,
+//     INSAPPAMT,
+    RO_INSEXCESSAMT as REV_INSEXCESSAMT,
+//     INSBETTERMENTAMT,
+//     CURRMILEAGE,
+//     CUSTCOMPLAINTREMARK,
+//     SUBTOTAL,
+//     TAXAMOUNT as Tax,
+//     TOTALAMOUNT,
+//    CREATEDDATETIME,
+//     INCLUDETAX,
+//     INSEXCESSTAXCODE,
+//     INSEXCESSGSTAMT,
+//     INSBETTERMENTTAXCODE,
+//     INSBETTERMENTGSTAMT,
+//     INVDATE,
+//    R_MIN,
+//    R_MAX,
+    ROINV_ROINVNO,
+    ROINV_ROINVID,
+    RO_ROINVID,
+    INV_ROINVID,
+    RONO,
+    ROINVDATE,
+    ROINVTYPECODE,
+//     STATUS,
+    adddiscount,
+    disccash,
+    ROUNDINGADJAMOUNT,
+    TOTALAMTPAYABLE,
+    CAMPOVERAMT,
+    CASHDISCAMT,
+    LBDISCPCT,
+    PTDISCPCT_PARTS,
+    PTDISCPCT_ACCESSORIES,
+    PTDISCPCT_LUBRICANTS,
+    PTDISCPCT_MATERIAL,
+    PTDISCAMT_PARTS,
+    PTDISCAMT_ACCESSORIES,
+    PTDISCAMT_LUBRICANTS,
+    PTDISCAMT_MATERIAL,
+    LBDISCAMT,
+    
+	TAX,
+    FSTAX,
+    WTYTAX,
+//     GSTTAXAMOUNT,
+    GSTAMOUNT,
+    
+    PACKLBAMT,
+    PACKPARTAMT,
+    INSEXCESSAMT,
+    GSTEXCESS,
+    GSTDISCAMT,
+    GSTBEFOREDISCAMT,
+    INSPARTDISC,
+    EDISCAMT,
+    TTLINVAMT,
+    EVAMOUNT,
+    ONHOLD,
+    TAXMETHOD,
+    OTHERDISC,
+	
+    ROINVNO_GROUP,
+    ROINVNO_INSGROUP,
+//     INVAMTAFTAX,
+//	R_MIN,
+//    R_MAX,
+    Revenue_Range,
+    Revenue_Sort
+FROM [lib://Transformed/Fact_RO.qvd]
+(qvd)
+where year(ROINVDATE)>$(vYear) and match(RO_OUTLETID,79,10549,2101)>0;
+
+RevenueRange:
+Load 
+	ROINV_ROINVNO as INVNO,
+    Revenue_Range as [Rev Range],
+    Revenue_Sort as [Rev Sort]
+Resident Fact_RO_REV;
+
+
+
+
+/////////////////////////////////////////////////////////////////
+
+T_SVC_RO_INV_PART:
+LOAD
+	PART_ROINVID &'|'& PART_OUTLETID&'|'&Floor(ROINVDATE) as %RO_INV_PART,
+    PART_ROINVID,
+    PART_OUTLETID,
+    ROINVDATE,
+    ROID,
+    RONO,
+    ROINVNO,
+    PARTTYPECODE AS PART_INV_PARTTYPECODE,
+    PART_CHARGETYPECODE,
+    REVPARTSRTL,
+    REVPARTSINT,
+    REVPARTSWTY,
+    REVACCRTL,
+    REVACCINT,
+    REVACCWTY,
+    REVLUBRTL,
+    REVLUBINT,
+    REVLUBWTY,
+    REVMATRTL,
+    REVMATINT,
+    REVMATWTY,
+    PKGPARTDISCAMT,
+    DISCPARTS,
+    DISCACC,
+    DISCMTL,
+    DISCLUB,
+    DISCSUBLUB,
+    CostSublet,
+    COSTPARTSWTY,
+    COSTPARTS,
+    COSTACCWTY,
+    COSTACC,
+    COSTLUBWTY,
+    COSTLUB,
+    COSTLUBSUBWTY,
+    COSTLUBSUB,
+    COSTMATWTY,
+    COSTMAT,
+    CAMPDISC,
+    TotalSubeletPartCost,
+    TotalSubeletPartCostWTY
+FROM [lib://Transformed/T_SVC_RO_INV_PART1.qvd]
+(qvd)
+where year(ROINVDATE)>$(vYear) and match(PART_OUTLETID,79,10549,2101)>0;
+
+
+///////////////////////////////////////////////////////////////////
+
+T_PI_PRO_INVPAY_DTL:
+LOAD
+    %INVDTL_Key,
+    PRONO,
+    PROINVNO,
+    PROINVDATE,
+    INVDTL_PROINVID,
+    PRO_OUTLETID,
+    PRO_PARTID,
+    PRO_PARTTYPECODE,
+    REVPARTSRTL_PRO,
+    REVACCRTL_PRO,
+    REVLUBRTL_PRO,
+    REVMATRTL_PRO,
+    DISCPARTS_PRO,
+    DISCACC_PRO,
+    DISCMTL_PRO,
+    DISCLUB_PRO,
+    DISCLUBSUB_PRO,
+//     DISCPARTS_PRO,
+//     DISCACC_PRO,
+//     DISCMTL_PRO,
+//     DISCLUB_PRO,
+//     DISCLUBSUB_PRO,
+	PRORevenue_Range,
+    PRORevenue_Sort,
+    COSTPARTS_PRO,
+    COSTACC_PRO,
+    COSTLUB_PRO,
+    COSTLUBSUB_PRO,
+    COSTMAT_PRO
+FROM [lib://Transformed/T_PI_PRO_INVPAY_DTL.qvd]
+(qvd)
+where match(PRO_OUTLETID,79,10549,2101)>0;
+
+RevenueRange:
+Load 
+	PROINVNO as INVNO,
+    PRORevenue_Range as [Rev Range],
+    PRORevenue_Sort as [Rev Sort]
+Resident T_PI_PRO_INVPAY_DTL;
+ 
+ /////////////////////////////////////////////////////////////
+ 
+ T_SVC_RO_INV_OP:
+LOAD
+//    %PartKey,
+	OP_ROINVID &'|'&OP_OUTLETID&'|'&Floor(ROINVDATE) as %RO_INV_OP,
+    ROINVDATE,
+    ROINVNO,
+    ROID,
+    RONO,
+    OP_ROINVID,
+    OP_OUTLETID,
+    OP_CHARGETYPECODE,
+    labourwty,
+    labouracc,
+    labourfs,
+    labournormal,
+    REVLBRTL,
+    REVLBINT,
+    REVFS,
+    REVWARLB,
+    DISCLABOUR,
+    PKGOPDISCAMT,
+    COSTLABOUR,
+    TotalSubeletJobCost,
+    TotalSubeletJobCostWTY
+FROM [lib://Transformed/T_SVC_RO_INV_OP.qvd]
+(qvd)
+where year(ROINVDATE)>$(vYear) and match(OP_OUTLETID,79,10549,2101)>0;
+
+///////////////////////////////////////////////////////////////////
+
+T_PI_CRO_DTL:
+LOAD
+	PARTID &'|'& OUTLETID as %Part_Key,
+    CROID,
+    PARTID,
+    Retail,
+    COST,
+    OUTLETID,
+    CRODATE,
+    PI_CRO_STATUS
+FROM [lib://Transformed/T_PI_CRO_DTL.qvd]
+(qvd)
+where match(OUTLETID,79,10549,2101)>0;
+
+//////////////////////////////////////////////////////////////
+
+MAP_OUTLET:
+MAPPING LOAD Distinct
+	OUTLETCODE,
+    OUTLETID
+Resident D_OUTLET_MSTR;
+
+Hoist:
+LOAD
+	*,
+    OUTLETID &'|'& DATE(Hoist_Date,'DD/MM/YYYY') as %Hoist;
+LOAD
+    APPLYMAP('MAP_OUTLET',OUTLETCODE,NULL()) AS OUTLETID,
+    Alignment,
+    NRS,
+    WORKING_DAYS,
+    Hoist_Date
+//     "YEAR",
+//     "MONTH",
+//     "FILENAME"
+FROM [lib://Transformed/EX_Hoist.qvd]
+(qvd);
+
+////////////////////////////////////////////////////////////
+
+NoConcatenate
+Fact_PartRecd:
+LOAD
+    
+    OUTLETID&'|'&PARTID&'|'&GINDATE as %PartRecd,
+    
+    GINID,
+    GINDTLBINID,
+    PORECDTLID,
+    POID,
+    PONO,
+    RETAIL_PRICE,
+    PARTID,
+    SUPPLYPARTNO,
+    BINLOTID,
+    BINLOTCODE,
+    UNITAVGCOST,
+    UNITPOISCOST,
+    TOTALAVGCOST,
+    TOTALPOISCOST,
+    QTYRCVD,
+    GSTTAXAMT,
+    TOTALPOISCOSTWGST,
+    GSTAMTWRND,
+    AMTWGSTWRND,
+    GINNO,
+    GINDATE,
+    OUTLETID,
+    CANCELREMARKS,
+//    CREATEDBY,
+    DOCID,
+    DONO,
+    DOCTYPE
+//    TAXMETHOD
+FROM [lib://Transformed/Fact_PartRecd.qvd]
+(qvd)
+where match(OUTLETID,79,10549,2101)>0;
+
+////////////////////////////////////////////////////////////
+
+left keep (Fact_PartRecd)
+LOAD
+    POID,
+    ORDERTYPEID,
+    ORDERTYPECODE,
+    SUPPLIERID,
+    SUPPLIERCODE,
+    SUPPLIERNAME
+//    UPDATEDBY,
+//    PODATE
+FROM [lib://Transformed/T_PI_PO_MSTR.qvd]
+(qvd);
+
+///////////////////////////////////////////////////////////
+
+DAILY_CLOSING:
+LOAD
+    OUTLETID &'|'& PARTID &'|'& Date(DC_CLOSINGDATE,'DD/MM/YYYY') AS %Closing,
+    
+    OUTLETID,
+    DC_OUTLETCODE,
+    DC_PARTNO,
+    DC_PARTDESC,
+    DC_CLOSINGSTOCK,
+    DC_AMOUNT,
+    DC_AVAILQTY,
+    DC_QTYONHAND,
+    DC_COSTVALUE,
+    DC_QTYALLOCATED,
+    DC_BACKORDERQTY,
+    DC_ONORDERQTY,
+    DC_BINLOCATION,
+    DC_UOMCODE,
+    DC_PARTTYPE,
+    DC_OPENINGCOST,
+    DC_RETAILPRICE,
+    DC_MAD,
+    DC_MIP,
+    Date(Floor(DC_CLOSINGDATE),'DD/MM/YYYY') as DC_CLOSINGDATE,
+    DC_ONHANDQTY,
+    DC_CFACTOR,
+    DC_ADJMIP,
+    DC_LASTISSUEDDATE,
+    DC_LASTRECEIVEDDATE,
+    DC_LASTORDERDATE,
+    DC_AVERAGECOST,
+    DC_TOTALTRANSCOST,
+    DC_TOTALSTKOPENCOST,
+    DC_TOTALSTKCLOSECOST,
+    PARTID,
+    DC_BEGINSTOCK,
+    DC_CREATEDDATETIME
+//    DC_SnapShotDate
+FROM [lib://Transformed/T_DAILY_CLOSING.qvd]
+(qvd)
+where match(OUTLETID,79,10549,2101)>0;
+
+left join
+Load Distinct
+	date(max(DC_CLOSINGDATE),'DD/MM/YYYY') as DC_CLOSINGDATE, 
+	1 as Fresh_Closing 
+Resident DAILY_CLOSING;
+
+/////////////////////////////////////////////////////
+
+TARGET:
+LOAD
+	*,
+    OUTLETID &'|'& FLOOR(BUDGET_DATE) AS %TARGET;
+LOAD
+//    REGION,
+//    STATE,
+//    OUTLET_CODE,
+    APPLYMAP('MAP_OUTLET',OUTLET_CODE) AS OUTLETID,
+//    OUTLET,
+    BUDGET_DATE,
+//    AWT_Month_Target,
+    After_Warranty_Target,
+//    RT_Month_Target,
+    Revenue_Target,
+//    IT_Month_Target,
+    Intake_Target
+FROM [lib://Transformed/TARGET.qvd]
+(qvd);
+
+///////////////////////////////////////////////////
+
+Fact_LubInv:
+LOAD
+//    I_OUTLETID &'|'& PARTNO &'|'& ROINVID   as %LubInv_Key,
+    I_OUTLETID &'|'& PARTID &'|'& ROINVID   as %LubInv_Key,
+    ROINVID,
+    ROINVNO,
+    INV_ROID,
+//     RONO,
+//     ROTYPE,
+//     RODATE,
+    I_OUTLETID,
+    RO_OUTLETCODE,
+    I_SVCADVISORID,
+//     REGNO,
+    I_CUSTPROFILEID,
+    ROINVDATE,
+    I_STATUS,
+//     TOTALAMOUNT,
+//     ROINVPARTID,
+	PARTID as INV_PARTID,
+    PARTNO as INV_PARTNO ,
+//     PARTDESC,
+    Bottle,
+    Litre,
+    QTY as INV_QTY,
+    Product
+FROM [lib://Transformed/Fact_LubInv.qvd]
+(qvd)
+where match(I_OUTLETID,79,10549,2101)>0;
+
+//////////////////////////////////////////////////////////
+
+Fact_LubOrder:
+LOAD
+//    O_OUTLETID &'|'& Order_Partno as %LubOrd_Key,
+    O_PARTID &'|'& O_OUTLETID as %LubOrd_Key,
+    %PPD_Key,
+    O_POID,
+//     PONO,
+//     CREATEDBY,
+    CREATEDDATETIME,
+    O_ORDERTYPEID,
+    O_OUTLETID,
+    POM_STATUS,
+    PO_OUTLETCODE,
+    PODATE,
+    O_PARTID,
+    Order_Partno,
+//     ETADATE,
+//     UNITAVGCOST,
+//     UNITPOISCOST,
+//     TOTALAVGCOST,
+//     TOTALPOISCOST,
+    O_STATUS,
+    PGDB_POID,
+    PPD_PARTID,
+    QTYRCVD as O_QTYRCVD,
+    ORDERQTY,
+    O_Bottle,
+    O_Litre
+FROM [lib://Transformed/Fact_LubOrder.qvd]
+(qvd)
+where match(O_OUTLETID,79,10549,2101)>0;
+
+///////////////////////////////////////////////////////
+
+Fact_Revenue_SSC:
+LOAD
+	Floor(ROID)&'|'&ROINVID&'|'&OPCODE&'|'&OUTLETID as %SSCKey,
+	Floor(ROID) as ROID,
+    RONO,
+    ROINVID,
+    ROINVNO,
+    ROINVDATE,
+    OUTLETID,
+    SVCADVISORID,
+//    RODATE,
+    %OP_KEY,
+    %INC_KEY,
+    OPCODE,
+    totalop,
+    WCFNO as SSC_WCFNO,
+    OFPNO,
+//     STATUS,
+    PARTNO as SSC_PARTNO,
+    PART_CATEGORY,
+    Revenue_SSC
+FROM [lib://Transformed/Fact_Revenue_SSC.qvd]
+(qvd)
+where match(OUTLETID,79,10549,2101)>0;
+// SVCADVISORID,ROID, OUTLETID,RONO,ROINVID, ROINVNO,ROINVDATE
+
+/////////////////////////////////////////////////////////////////
+
+TRACE '-----------------LINK TABLE START --------------------';
+
+LinkTable:
+LOAD Distinct
+	OUTLETID &'|'&PARTID&'|'& BINLOTID as %PDB_Key,
+    OUTLETID,
+    PARTID,
+    BINLOTID
+FROM [lib://Transformed/Dead_Stock_Report.qvd]
+(qvd);
+
+let vRow = NoOfRows('LinkTable');
+TRACE Dead_Stock_Report = $(vRow);
+
+Concatenate(LinkTable)
+LOAD Distinct  
+    ROID,
+    Vehicle_No as REGNO,
+    RO_RONO as RONO,
+    RO_RONO as [RONO/PRONO],
+    SUPID,
+    ROTYPE,
+    OUTLETID,
+    RO_VCPROFILEID as VCPROFILEID,
+    SVCADVISORID AS  STAFFID,
+    CUSTPROFILEID,
+    'RO' As [Transaction Type],
+    INSCOMPID,
+    Floor(RDate)AS REPORT_DATE,
+    RO_MVARIANTID AS MVARIANTID
+Resident RO_MASTER;
+
+//FROM [lib://Transformed/T_SVC_RO_MSTR.qvd]
+//(qvd);
+
+let vRow = NoOfRows('LinkTable');
+TRACE RO_MASTER = $(vRow);
+
+
+Concatenate(LinkTable)
+Outstanding:
+LOAD
+    SVCADVISORID as STAFFID,
+    OUTLETID,
+    REGNO,
+    INSCOMPID,
+    RONO,
+    Floor(SnapShotDate) as REPORT_DATE,
+    SVCADVISORID &'|'&OUTLETID&'|'&date(SnapShotDate,'DD/MM/YYYY') as %Outstanding
+Resident Outstanding;
+
+let vRow = NoOfRows('LinkTable');
+TRACE Outstanding = $(vRow);
+
+
+Concatenate(LinkTable)
+LOAD Distinct
+	PART_ROINVID as ROINVID,
+    PART_OUTLETID as OUTLETID,
+    Date(Floor(ROINVDATE),'DD/MM/YYYY') as ROINVDATE,
+    Date(Floor(ROINVDATE),'DD/MM/YYYY') as INVDATE,
+    1 as Intake_flag,
+    Floor(ROINVDATE) as REPORT_DATE,
+    'RO' As [Transaction Type],
+    ROINVNO,
+    ROINVNO AS INVNO,
+    ROID,
+    ApplyMap('MAP_VARIANT',ROID) as MVARIANTID,
+    RONO,
+    ApplyMap('MAP_ROMSTR',RONO) as VCPROFILEID,
+    RONO as [RONO/PRONO],
+	PART_ROINVID &'|'& PART_OUTLETID&'|'&floor(ROINVDATE) as %RO_INV_PART
+RESIDENT T_SVC_RO_INV_PART;
+
+let vRow = NoOfRows('LinkTable');
+TRACE 'T_SVC_RO_INV_PART' = $(vRow);
+
+
+Concatenate(LinkTable)
+LOAD
+	INVDTL_PROINVID&'|'&PRO_OUTLETID as %INVDTL_Key,
+    Date(Floor(PROINVDATE),'DD/MM/YYYY') as INVDATE,
+    'PRO' As [Transaction Type],
+    PRONO,
+	PROINVNO AS INVNO,
+    PRONO as [RONO/PRONO],
+    Floor(PROINVDATE) as REPORT_DATE,
+    INVDTL_PROINVID as PROINVID,
+    PRO_OUTLETID as OUTLETID
+RESIDENT T_PI_PRO_INVPAY_DTL;
+
+let vRow = NoOfRows('LinkTable');
+TRACE T_PI_PRO_INVPAY_DTL = $(vRow);
+
+
+Concatenate(LinkTable)
+Load Distinct 
+	OP_ROINVID &'|'&OP_OUTLETID&'|'&Floor(ROINVDATE) as %RO_INV_OP,
+    ROINVNO,
+    ROINVNO AS INVNO,
+    ROID,
+    ApplyMap('MAP_VARIANT',ROID) as MVARIANTID,
+    'RO' As [Transaction Type],
+    RONO,
+    ApplyMap('MAP_ROMSTR',RONO) as VCPROFILEID,
+    RONO as [RONO/PRONO],
+	OP_ROINVID as ROINVID,
+    OP_OUTLETID as OUTLETID,
+    Floor(ROINVDATE) as REPORT_DATE,
+    1 as Intake_flag,
+    DATE(Floor(ROINVDATE),'DD/MM/YYYY') AS ROINVDATE,
+    Date(Floor(ROINVDATE),'DD/MM/YYYY') as INVDATE
+Resident T_SVC_RO_INV_OP;
+
+let vRow = NoOfRows('LinkTable');
+TRACE T_SVC_RO_INV_OP = $(vRow);
+
+
+Concatenate(LinkTable)
+Load Distinct
+    RO_ROINVID as ROINVID,
+    REGNO,
+    Floor(ROINVDATE) AS REPORT_DATE,
+    DATE(Floor(ROINVDATE),'DD/MM/YYYY') AS ROINVDATE,
+    Date(Floor(ROINVDATE),'DD/MM/YYYY') as INVDATE,
+    1 as Intake_flag,
+    ROINV_ROINVNO as ROINVNO,
+    ROINV_ROINVNO AS INVNO,
+    RO_SVCADVISORID as STAFFID,
+    RO_VCPROFILEID as  VCPROFILEID,
+    RO_CUSTPROFILEID as CUSTPROFILEID,
+    RO_OUTLETID as OUTLETID,
+    'RO' As [Transaction Type],
+    RO_INSCOMPID as INSCOMPID,
+    RO_ROTYPE as ROTYPE,
+    TASK_ROID as ROID,
+    ApplyMap('MAP_VARIANT',TASK_ROID) as MVARIANTID,
+    RONO,
+    RONO as [RONO/PRONO],
+    ROINVTYPECODE
+resident Fact_RO_REV;
+
+let vRow = NoOfRows('LinkTable');
+TRACE Fact_RO_REV = $(vRow);
+
+
+Concatenate(LinkTable)
+LOAD Distinct
+	'T_PI_CRO_DTL' AS LINK_CHECK,
+    PARTID,
+    OUTLETID,
+//    CRODATE AS REPORT_DATE
+    Floor(CRODATE) AS REPORT_DATE
+Resident T_PI_CRO_DTL;
+
+let vRow = NoOfRows('LinkTable');
+TRACE T_PI_CRO_DTL = $(vRow);
+
+
+Concatenate(LinkTable)
+Load 
+	OUTLETID &'|'& DATE(Hoist_Date,'DD/MM/YYYY') as %Hoist,
+    OUTLETID, 
+    Floor(Hoist_Date) AS REPORT_DATE
+resident Hoist;
+
+let vRow = NoOfRows('LinkTable');
+TRACE Hoist = $(vRow);
+
+
+Concatenate(LinkTable)
+Fact_PartRecd:
+LOAD Distinct
+    OUTLETID,
+    PARTID,
+    BINLOTID,
+    Floor(GINDATE) as REPORT_DATE,
+    OUTLETID&'|'&PARTID&'|'&DATE(GINDATE,'DD/MM/YYYY') as %PartRecd
+Resident Fact_PartRecd;
+
+let vRow = NoOfRows('LinkTable');
+TRACE Fact_PartRecd = $(vRow);
+
+
+Concatenate(LinkTable)
+Fact_Warranty:
+LOAD Distinct
+	OUTLETID,
+    Date(Floor(ROINVDATE),'DD/MM/YYYY') AS ROINVDATE,
+    Date(Floor(ROINVDATE),'DD/MM/YYYY') as INVDATE,
+    1 as Intake_flag,
+    'RO' As [Transaction Type],
+    ROINVNO,
+    ROINVID,
+    Floor(ROINVDATE) as REPORT_DATE,
+    CUSTPROFILEID,
+    ROID,
+    RONO,
+    RONO as [RONO/PRONO],
+    SVCADVISORID as STAFFID,
+    ROINVNO &'|'& SVCADVISORID &'|'& ROID &'|'& Floor(ROINVDATE) &'|'& OUTLETID as %F_Warranty
+Resident Fact_Warranty;
+
+let vRow = NoOfRows('LinkTable');
+TRACE Fact_Warranty = $(vRow);
+
+
+Concatenate(LinkTable)
+LOAD Distinct
+	OUTLETID,
+    PARTID,
+    Floor(DC_CLOSINGDATE) as REPORT_DATE,
+    OUTLETID &'|'& PARTID &'|'& Date(DC_CLOSINGDATE,'DD/MM/YYYY') AS %Closing
+Resident DAILY_CLOSING;
+
+let vRow = NoOfRows('LinkTable');
+TRACE DAILY_CLOSING = $(vRow);
+
+
+Concatenate(LinkTable)
+LOAD Distinct
+	OUTLETID,
+    FLOOR(BUDGET_DATE) AS REPORT_DATE
+Resident TARGET;
+
+let vRow = NoOfRows('LinkTable');
+TRACE TARGET = $(vRow);
+
+
+Concatenate (LinkTable)
+LOAD Distinct    
+    I_OUTLETID as OUTLETID,
+    INV_PARTID as PARTID,
+    ROINVNO,
+    ROINVID,
+    Product,
+    Date(Floor(ROINVDATE),'DD/MM/YYYY') AS ROINVDATE,
+    Floor(ROINVDATE) as REPORT_DATE
+Resident Fact_LubInv; 
+
+let vRow = NoOfRows('LinkTable');
+TRACE Fact_LubInv = $(vRow);
+
+
+Concatenate (LinkTable)
+LOAD Distinct    
+    O_OUTLETID as OUTLETID,
+    O_PARTID as PARTID,
+    Floor(CREATEDDATETIME) AS REPORT_DATE
+Resident Fact_LubOrder; 
+
+let vRow = NoOfRows('LinkTable');
+TRACE Fact_LubOrder = $(vRow);
+
+
+Concatenate (LinkTable)
+Load DISTINCT
+	ROID&'|'&ROINVID&'|'&OPCODE&'|'&OUTLETID as %SSCKey,
+	ROID,
+    OUTLETID,
+    RONO,
+    OPCODE,
+    ROINVID,
+    ROINVNO,
+    SVCADVISORID,
+    Date(Floor(ROINVDATE),'DD/MM/YYYY') AS ROINVDATE,
+	Floor(ROINVDATE) as REPORT_DATE
+Resident Fact_Revenue_SSC;
+
+let vRow = NoOfRows('LinkTable');
+TRACE Fact_Revenue_SSC = $(vRow);
+
+
+TRACE '-----------------LINK TABLE END --------------------';
+
+LINKTABLE2:
+LOAD Distinct
+	*,
+	STAFFID &'|'&OUTLETID as %STAFF_KEY,
+    OUTLETID &'|'& REPORT_DATE AS %TARGET,  
+    ROID&'|'&OUTLETID as %ROKey,
+    PARTID &'|'& OUTLETID as %Part_Key,
+    OUTLETID &'|'& PARTID &'|'& ROINVID   as %LubInv_Key,
+    PARTID &'|'& OUTLETID as %LubOrd_Key
+RESIDENT LinkTable;
+
+DROP Tables LinkTable;
+
+DROP Fields OUTLETID, PARTID, BINLOTID,CREATEDDATETIME from DEAD_STOCK;
+DROP Fields OUTLETID, ROID, ROTYPE,SUPID, SVCADVISORID, CUSTPROFILEID,RO_VCPROFILEID, INSCOMPID   from RO_MASTER;
+DROP FIELDS REGNO, ROID, RONO,ROINVTYPECODE, TASK_ROID, RO_VCPROFILEID, ROINVDATE FROM Fact_RO_REV;
+DROP FIELDS PARTID,OUTLETID  FROM T_PI_CRO_DTL;
+DROP FIELDS PARTID,OUTLETID  FROM DAILY_CLOSING;
+DROP FIELDS PARTID,OUTLETID,BINLOTID  FROM Fact_PartRecd;
+DROP FIELDS PRONO FROM T_PI_PRO_INVPAY_DTL;
+DROP FIELDS OUTLETID  FROM Hoist;
+//DROP FIELDS PARTID,OUTLETID  FROM T_PI_PART_DEFAULT_BIN;
+DROP FIELDS ROINVDATE, ROINVNO,ROID, RONO FROM  T_SVC_RO_INV_OP;
+DROP FIELDS ROINVDATE, ROINVNO, ROID, RONO FROM  T_SVC_RO_INV_PART;
+DROP FIELDS ROINVDATE, ROINVNO,ROID, OUTLETID, SVCADVISORID, RONO, ROINVID, CUSTPROFILEID  FROM Fact_Warranty;
+DROP FIELDS OUTLETID FROM TARGET;
+//DROP FIELDS REGNO, MVARIANTID FROM T_VEHCUSTPROFILE;
+DROP Fields OUTLETID, SVCADVISORID, REGNO, INSCOMPID, RONO  from Outstanding;
+Drop Fields ROINVDATE, I_OUTLETID, INV_PARTID, INV_PARTNO, ROINVNO, ROINVID, Product from Fact_LubInv;
+Drop Fields CREATEDDATETIME, O_OUTLETID, O_PARTID from Fact_LubOrder;
+Drop Fields SVCADVISORID,ROID, OUTLETID,RONO,ROINVID, ROINVNO,ROINVDATE,OPCODE from Fact_Revenue_SSC;
+
+////////////////////////////////////////////////////////////////
+COPY F! to F9
+
+//left keep(LINKTABLE2)
+RO_OP:
+Load
+	*
+FROM [lib://Transformed/T_SVC_RO_OP.qvd]
+(qvd);
+
+//left keep(LINKTABLE2)
+RO_OP_PART:
+Load
+	*
+FROM [lib://Transformed/T_SVC_RO_OP_PART.qvd]
+(qvd);
+
+//left keep(LINKTABLE2)
+RECEPTION:
+Load
+	*
+FROM [lib://Transformed/T_SVC_RECEPTION.qvd]
+(qvd);
+
+
+
+//F9
+left keep(LINKTABLE2)
+T_SVC_PMTRECEIPT_DTL:
+LOAD
+    ROINVNO,
+    VOUCHER
+FROM [lib://Transformed/T_SVC_PMTRECEIPT_DTL.qvd]
+(qvd);
+
+///////////////////////////////////////////////////////
+
+left keep(LINKTABLE2)
+T_VEHCUSTPROFILE:
+LOAD
+    VCPROFILEID,
+    PERODUA,
+//    REGNO,
+    REGDATE,
+    Year_of_Reg,
+    SOLDDATE,
+    CHASSISNO,
+    ENGINENO,
+    MAKEID AS VC_MAKEID,
+    MAKECODE AS VC_MAKECODE,
+    MFAMILYID AS VC_MFAMILYID,
+    MFAMILYCODE AS VC_MFAMILYCODE,
+    MVARIANTID AS VC_MVARIANTID,
+    MVARIANTCODE AS VC_MVARIANTCODE,
+//    MVARIANTID,
+    NEXTSVCDATE,
+    CURRENTMILEAGE_PRO,
+    NEXTSVCMILEAGE,
+    DSSMVARIANTCODE,
+    SENDERNAME,
+    SENDERCONTACT
+FROM [lib://Transformed/T_VEHCUSTPROFILE.qvd]
+(qvd);
+
+// MAP_VEHCUSTPROFILE:
+// Mapping Load Distinct
+// 	VCPROFILEID,
+//     MVARIANTID
+// Resident T_VEHCUSTPROFILE;
+
+///////////////////////////////////////////////////
+
+Quartersmap:
+Mapping Load
+RowNo() as Month,
+'Q' & Ceil(RowNo()/3)as Quarter
+AutoGenerate (12);
+
+
+Halfyearsmap:
+Mapping Load
+RowNo() as Month,
+'HY' & ceil(RowNo()/6) as HalfYear
+AutoGenerate (12);
+
+
+Temp:
+LOAD
+Min(REPORT_DATE) as Mindate,
+Max(REPORT_DATE) as Maxdate
+Resident LINKTABLE2;
+
+
+LET vmindate= Num(Peek('Mindate',0,'Temp'));
+LET vmaxdate= Num(Peek('Maxdate',0,'Temp'));
+
+DROP Table Temp;
+
+Calendar:
+LOAD
+$(vmindate) + IterNo() -1 as Num,
+Date($(vmindate) + IterNo() -1) as Date
+AutoGenerate 1
+While
+($(vmindate) + IterNo() -1)<= $(vmaxdate);
+
+Master_Cal:
+LOAD  
+Floor(Date) as REPORT_DATE,
+//Floor(Date) as REPORT_DATE1,
+Year(Date) as Year,
+ApplyMap('Quartersmap',Month(Date),Null()) as Quarter,
+ApplyMap('Halfyearsmap',Month(Date),Null()) as HalfYear,
+Month(Date) as Month,
+MonthName(Date) as MonthName,
+Day(Date) as Day,
+YearToDate(Date) as YTD,
+Week(Date) as Week
+Resident Calendar;
+
+DROP Table Calendar;
+
+////////////////////////////////////////////////////
+
+CLEANUP:
+
+drop fields 
+	OP_ROINVID
+    ,OP_OUTLETID
+    ,OP_WTYINCID
+    ,OPPART_OPCODE  //-----
+    ,DC_OUTLETCODE
+    ,PART_ROINVID
+    ,PART_OUTLETID
+    ,INVDTL_PROINVID
+    ,INV_ROINVID
+    ,PRO_OUTLETID
+    ,RO_CREATEDDATETIME
+    ,RO_CUSTPROFILEID
+    ,RO_OUTLETID
+    ,RO_INSCOMPID
+    ,RO_SVCADVISORID
+    ,RO_OUTLETID    
+    ,RO_ROINVID
+//    ,RO_RONO
+    ,ROOPPART_STATUS
+    ,ROOPPART_RECSTATUS
+    ,ROOP_RECSTATUS
+    ,ROOP_STATUS
+    ,ROOP_SUBLETCODE
+    ,ROINV_ROINVID
+    ,REV_RONO
+    ,Revenue_Range
+    ,Revenue_Sort
+    ,PRORevenue_Range
+    ,PRORevenue_Sort
+//    ,R_MAX
+//    ,R_MIN
+//     ,MAX
+//     ,MIN
+
+
+;   
+
+////////////////////////////////////////////////////////
+
+store file script:
+
+FOR vCount = 0 to NoOfTables()-1
+
+     LET vTableName = TableName($(vCount));
+
+     STORE "$(vTableName)" INTO [lib://Data Model/$(vTableName).qvd] (qvd);
+
+NEXT vCount
+
+//////////////////////////////////////////////////////////////////
+
+For Each vFile in FileList('lib://Transformed/*.qvd')
+
+Let vFilePath=SubField('$(vFile)', '/', -1);
+Let vFileName=SubField('$(vFilePath)', '.', 1);
+	
+    [$(vFileName)]:
+    LOAD * FROM $(vFile) (qvd);
+
+Next vFile;
+
+
+Exit Script;
+
+
+///////////////////////////////
+
+
+
+
+
+
+	
