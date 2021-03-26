@@ -1,0 +1,33 @@
+SELECT a.outletcode, a.status,
+DECODE (a.status,
+'O', 'Open',
+'L', 'Closed',
+'C', 'Cancelled',
+'Other'
+) ro_status,
+c.regno, a.roinvno, a.roinvdate, a.rono, c.rodate, c.rotype,
+b.partno, b.partdesc, b.qty, a.totalamount, c.svcadvisorid,
+d.svcadvisorname, c.custprofileid, e.custname
+FROM dss.t_svc_ro_inv_mstr a,
+dss.t_svc_ro_inv_part b,
+dss.t_svc_ro_mstr c,
+dss.t_svc_advisor_mstr d,
+frm.t_custprofile e
+WHERE a.roinvno = b.roinvno
+AND a.roinvid = b.roinvid
+AND a.rono = c.rono
+AND a.roid = c.roid
+AND c.outletid = d.outletid
+AND c.svcadvisorid = d.staffid
+AND c.custprofileid = e.custprofileid
+AND c.outletcode LIKE '2%'
+AND b.partno || NULL IN
+('70100133', '70100135', '70100129', '70100131', '70100122',
+'70100127', '70100332', '72002346', '70021180', '7010095',
+'70100370', '70011001', '70011002', '70011003', '70011004',
+'70011005', '70011006')
+--AND A.OUTLETCODE = '236015'
+AND a.roinvdate >= '01-SEP-2020'
+AND a.roinvdate < '01-OCT-2020'
+ORDER BY c.outletcode, a.roinvdate
+--and A.ROINVNO ='KJINVB20001535'

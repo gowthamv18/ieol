@@ -1,0 +1,77 @@
+
+SELECT DISTINCT OUTLET.OUTLETCODE,
+                  OUTLET.OUTLETNAME,
+                  SUM (NVL (DC.QUANTITY, 0)) AS QTYONHAND,
+                  SUM (NVL (DC.TOTALTRANSWAC, 0)) AS TOTALTRANSCOST,
+                  SUM (NVL (DC.COST, 0) / DC.CFACTOR) AS COSTVALUE,
+                  SUM (NVL (DC.RETAILPRICE, 0)) AS UNITPRICE
+    FROM    T_DAILY_CLOSING DC
+         INNER JOIN
+            T_OUTLET_MSTR OUTLET
+         ON DC.OUTLETCODE = OUTLET.OUTLETCODE
+   WHERE 1 = 1
+         AND (EXISTS
+                 (SELECT PMV.PARTID
+                    FROM T_PI_PART_MOVEMENT PMV
+                   WHERE     PMV.OUTLETID = OUTLET.OUTLETID
+                         AND PMV.PARTID = DC.PARTID
+                         AND ROWNUM = 1)
+              OR DC.QUANTITY > 0)
+         AND OUTLET.OUTLETCODE = '622201'
+         AND DC.CLOSINGDATE >= TO_DATE ('09/01/2019', 'DD/MM/YYYY')
+         AND DC.CLOSINGDATE < TO_DATE ('09/01/2019', 'DD/MM/YYYY') + 1
+GROUP BY OUTLET.OUTLETCODE, OUTLET.OUTLETNAME;
+
+
+
+  SELECT SUM (MAIN.QTYONHAND) AS QTYONHAND,
+         SUM (MAIN.TOTALTRANSCOST) AS TOTALTRANSCOST,
+         SUM (MAIN.COSTVALUE) AS COSTVALUE,
+         SUM (MAIN.UNITPRICE) AS UNITPRICE,
+         MAIN.PARTTYPE
+    FROM (  SELECT DISTINCT DC.PARTTYPE,
+                            DC.PARTNO,
+                            NVL (DC.QUANTITY, 0) AS QTYONHAND,
+                            NVL (DC.TOTALTRANSWAC, 0) AS TOTALTRANSCOST,
+                            NVL (DC.COST, 0) / DC.CFACTOR AS COSTVALUE,
+                            NVL (DC.RETAILPRICE, 0) AS UNITPRICE
+              FROM    T_DAILY_CLOSING DC
+                   INNER JOIN
+                      T_OUTLET_MSTR OUTLET
+                   ON DC.OUTLETCODE = OUTLET.OUTLETCODE
+             WHERE 1 = 1
+                   AND (EXISTS
+                           (SELECT PMV.PARTID
+                              FROM T_PI_PART_MOVEMENT PMV
+                             WHERE     PMV.OUTLETID = OUTLET.OUTLETID
+                                   AND PMV.PARTID = DC.PARTID
+                                   AND ROWNUM = 1)
+                        OR DC.QUANTITY > 0)
+                   AND OUTLET.OUTLETCODE = '622201'
+                   AND DC.CLOSINGDATE >= TO_DATE ('09/01/2019', 'DD/MM/YYYY')
+                   AND DC.CLOSINGDATE < TO_DATE ('09/01/2019', 'DD/MM/YYYY') + 1
+                   AND OUTLET.OUTLETCODE = '622201'
+          ORDER BY CASE
+                      WHEN DC.PARTTYPE = 'PARTS'
+                      THEN
+                         1
+                      WHEN DC.PARTTYPE = 'ACCESSORIES'
+                      THEN
+                         2
+                      WHEN DC.PARTTYPE = 'OIL ' || CHR (38) || ' LUBRICANT'
+                      THEN
+                         3
+                      WHEN DC.PARTTYPE = 'LUBE SUB PRODUCT'
+                      THEN
+                         4
+                      WHEN DC.PARTTYPE = 'MTL'
+                      THEN
+                         5
+                      WHEN DC.PARTTYPE = 'PAINT'
+                      THEN
+                         6
+                      ELSE
+                         7
+                   END) MAIN
+GROUP BY MAIN.PARTTYPE;
+

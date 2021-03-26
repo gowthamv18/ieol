@@ -1,0 +1,28 @@
+DROP VIEW DSS.VW_PENPARTCOLCRORPT;
+
+/* Formatted on 2020/11/26 13:41 (Formatter Plus v4.8.8) */
+CREATE OR REPLACE FORCE VIEW dss.vw_penpartcolcrorpt (outletid,
+                                                      outletcode,
+                                                      outletname,
+                                                      crodate,
+                                                      status,
+                                                      COST,
+                                                      retail
+                                                     )
+AS
+   SELECT mstr.outletid, mstr.outletcode, ot.outletname, mstr.crodate,
+          mstr.status,
+          (CASE
+              WHEN ot.outlettype = 'DEALER'
+                 THEN COALESCE (db.avgpartcost, 0)
+              ELSE COALESCE (db.pois_costprice, 0)
+           END
+          ) AS COST,
+          COALESCE (dtl.totalbasepricewgst, 0) AS retail
+     FROM t_pi_cro_mstr mstr INNER JOIN t_outlet_mstr ot
+          ON ot.outletid = mstr.outletid
+          INNER JOIN t_pi_cro_dtl dtl
+          ON dtl.croid = mstr.croid AND dtl.recstatus = 1
+          INNER JOIN t_pi_part_default_bin db
+          ON db.outletid = mstr.outletid AND db.partid = dtl.partid
+          ;

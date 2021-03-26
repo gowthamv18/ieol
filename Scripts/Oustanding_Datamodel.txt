@@ -1,0 +1,46 @@
+Outstanding:
+LOAD
+    SVCADVISORID &'|'&OUTLETID as %STAFF_KEY,
+    "MIN",
+    "MAX",
+    Aging,
+    SVCADVISORID,
+    OUTLETID,
+    ROINVDATE as O_ROINVDATE,
+    ROINVNO as O_ROINVNO,
+    OUTSTANDINGAMOUNT,
+    ROINVTYPECODE as O_ROINVTYPECODE,
+    SUBTOTAL as O_SUBTOTAL,
+    TOTALAMOUNT as O_TOTALAMOUNT,
+    TAXMETHOD AS O_TAXMETHOD,
+    INVTYPE,
+    RONO,
+    REGNO,
+    INSCOMPID,
+    ACTIONTAKEN as O_ACTIONTAKEN,
+    CUSTNAME,
+    SVCADVISORNAME as O_SVCADVISORNAME,
+    SnapShotDate,
+    OUTSTANDING_GRP,
+    OUTSTANDING_SORT
+FROM [lib://Transformed/Outstanding_202102.qvd]
+(qvd);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

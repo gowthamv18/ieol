@@ -1,0 +1,98 @@
+CREATE OR REPLACE FORCE VIEW dss.vw_outpaygst (regno,
+                                               inscompid,
+                                               roinvdate,
+                                               roinvno,
+                                               outstandingamount,
+                                               svcadvisorname,
+                                               custname,
+                                               subtotal,
+                                               totalamount,
+                                               svcadvisorid,
+                                               outletcode,
+                                               outletname,
+                                               rono,
+                                               invtype,
+                                               actiontaken,
+                                               roinvtypecode,
+                                               taxmethod
+                                              )
+AS
+   SELECT rom.regno, rom.inscompid, roim.roinvdate, roim.roinvno,
+          roim.outstandingamount, am.svcadvisorname,
+          im.inscompname AS custname, roim.bfroundupamt AS subtotal,
+          roim.totalamount, rom.svcadvisorid, om.outletcode, om.outletname,
+          rom.rono, 'RO' AS invtype, rom.actiontaken, roim.roinvtypecode,
+          roim.taxmethod
+     FROM t_vi_inscomp_mstr im,
+          t_svc_ro_inv_mstr roim,
+          t_outlet_mstr om,
+          t_svc_ro_mstr rom,
+          t_svc_advisor_mstr am,
+          t_custprofile cp
+    WHERE im.inscompid = rom.inscompid
+      AND cp.custprofileid = rom.custprofileid
+      AND am.staffid = rom.svcadvisorid
+      AND am.outletid = rom.outletid
+      AND roim.roid = rom.roid
+      AND rom.outletid = om.outletid
+      AND om.recstatus = 1
+      AND roim.status = 'O'
+      AND roim.status != 'C'
+      AND roim.roinvtypecode = 'SOINS'
+      AND roim.writeoffremarks IS NULL
+   UNION ALL
+   SELECT rom.regno, NULL AS inscompid, roim.roinvdate, roim.roinvno,
+          roim.outstandingamount,
+          (SELECT sam.svcadvisorname
+             FROM t_svc_advisor_mstr sam
+            WHERE sam.staffid = rom.svcadvisorid
+              AND sam.outletid = om.outletid) AS svcadvisorname,
+          cp.custname, roim.subtotal, roim.totalamount, rom.svcadvisorid,
+          om.outletcode, om.outletname, rom.rono, 'RO' AS invtype,
+          rom.actiontaken, roim.roinvtypecode, roim.taxmethod
+     FROM t_outlet_mstr om, t_svc_ro_mstr rom INNER JOIN t_svc_ro_inv_mstr roim
+          ON roim.roid = rom.roid
+          INNER JOIN t_custprofile cp ON cp.custprofileid = rom.custprofileid
+    WHERE rom.outletid = om.outletid
+      AND roim.roinvtypecode = 'SOFLEKSIB'
+      AND roim.status != 'C'
+      AND rom.status = 'I'
+      AND roim.pymttype = 'D'
+      AND roim.outstandingamount != 0
+      AND roim.writeoffremarks IS NULL
+   UNION ALL
+   SELECT pro.regno, NULL AS inscompid, pim.invdate AS roinvdate,
+          pim.proinvno AS roinvno, pim.outstandingamount,
+          (SELECT tum.username
+             FROM t_user_mstr tum
+            WHERE tum.userid = pro.createdby) AS svcadvisorname, pim.custname,
+          pim.invamtwogst AS subtotal, pim.ttlinvamt AS totalamount,
+          pro.createdby AS svcadvisorid, om.outletcode, om.outletname,
+          pro.prono AS rono, 'PRO' AS invtype, '' AS actiontaken,
+          'PRI' AS roinvtypecode, pim.taxmethod
+     FROM t_outlet_mstr om INNER JOIN t_pi_pro_mstr pro
+          ON pro.outletid = om.outletid
+          INNER JOIN t_pi_pro_invpay_mstr pim ON pim.proid = pro.proid
+          INNER JOIN t_custprofile cp ON cp.custid = pim.custid
+    WHERE pim.status = 'D'
+      AND pim.paymenttype = 'D'
+      AND pim.outstandingamount != 0
+      AND pim.writeoffremarks IS NULL;
+
+
+DROP SYNONYM DSSUSR.VW_OUTPAYGST;
+
+CREATE SYNONYM DSSUSR.VW_OUTPAYGST FOR DSS.VW_OUTPAYGST;
+
+
+DROP SYNONYM DWQVUSR.VW_OUTPAYGST;
+
+CREATE SYNONYM DWQVUSR.VW_OUTPAYGST FOR DSS.VW_OUTPAYGST;
+
+
+DROP SYNONYM FRMUSR.VW_OUTPAYGST;
+
+CREATE SYNONYM FRMUSR.VW_OUTPAYGST FOR DSS.VW_OUTPAYGST;
+
+
+GRANT SELECT ON DSS.VW_OUTPAYGST TO DWQVUSR;

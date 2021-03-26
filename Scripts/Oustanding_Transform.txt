@@ -1,0 +1,259 @@
+//-------------------------------------------------- section 1 -------------------
+
+OUTSTANDING_AMT:
+LOAD
+// ROID&'|'&RONO as %RO_Key,
+    Date(ROINVDATE,'DD/MM/YYYY') as ROINVDATE,
+   Today() -Left(ROINVDATE,10) as Aging,
+	ROINVNO,
+//	ROINVID,
+    ROID,// as INV_ROID,
+//    RONO,// as INV_RONO,
+    OUTSTANDINGAMOUNT,
+    ROINVTYPECODE,
+    STATUS,
+    BFROUNDUPAMT as SUBTOTAL,
+    TOTALAMOUNT,
+    TAXMETHOD,
+    'RO' AS INVTYPE
+// FROM [lib://PSS/T_SVC_RO_INV_MSTR/*20208*.qvd]
+// (qvd)
+RESIDENT T_SVC_RO_INV_MSTR
+where ROINVTYPECODE = 'SOINS' and STATUS = 'O' and len(trim(WRITEOFFREMARKS))=0;
+
+TEMP_RO_MSTR:
+LOAD Distinct
+	ROID,
+    RONO,
+    REGNO,
+	INSCOMPID,
+    SVCADVISORID,
+    ACTIONTAKEN,
+//    CUSTPROFILEID,
+    OUTLETID,
+    ApplyMap('Map_INSNAME',INSCOMPID,NULL()) AS CUSTNAME
+FROM [lib://PSS/T_SVC_RO_MSTR/*2020*.qvd]
+(qvd);
+
+LET VROW = NoOfRows('OUTSTANDING_AMT');
+TRACE $(VROW);
+
+LEFT Join(OUTSTANDING_AMT)
+Load *
+Resident TEMP_RO_MSTR;
+
+DROP Table TEMP_RO_MSTR;
+
+LET VROW = NoOfRows('OUTSTANDING_AMT');
+TRACE $(VROW);
+
+//-------------------------------------------------- section 2 -------------------
+
+TEMP_T_SVC_RO_INV_MSTR:
+LOAD
+// ROID&'|'&RONO as %RO_Key,
+//     ROINVID,
+    Date(ROINVDATE,'DD/MM/YYYY') as ROINVDATE,
+   Today() -Left(ROINVDATE,10) as Aging,
+	ROINVNO,
+    OUTSTANDINGAMOUNT,
+//	ROINVID,
+    ROID,// as INV_ROID,
+//    RONO,// as INV_RONO,
+    ROINVTYPECODE,
+    STATUS,
+    SUBTOTAL,
+    TOTALAMOUNT,
+    TAXMETHOD,
+    'RO' AS INVTYPE
+//FROM [lib://PSS/T_SVC_RO_INV_MSTR/*2020*.qvd]
+//(qvd)
+RESIDENT T_SVC_RO_INV_MSTR
+where ROINVTYPECODE = 'SOFLEKSIB' and STATUS <> 'C' and PYMTTYPE = 'D' and OUTSTANDINGAMOUNT <> 0 and len(trim(WRITEOFFREMARKS))=0;
+
+
+TEMP_RO_MSTR:
+LOAD Distinct
+	ROID,
+    RONO,
+    REGNO,
+	null() as INSCOMPID,
+    SVCADVISORID,
+    ACTIONTAKEN,
+    CUSTPROFILEID,
+//    CUSTPROFILEID as RO_CUSTPROFILEID,
+    OUTLETID,
+    ApplyMap('MAP_CUSTNAME',CUSTPROFILEID,NULL()) AS CUSTNAME
+FROM [lib://PSS/T_SVC_RO_MSTR/*2020*.qvd]
+(qvd)
+WHERE STATUS = 'I';
+
+LET VROW = NoOfRows('TEMP_T_SVC_RO_INV_MSTR');
+TRACE $(VROW);
+
+INNER Join(TEMP_T_SVC_RO_INV_MSTR)
+Load *
+Resident TEMP_RO_MSTR;
+
+DROP Table TEMP_RO_MSTR;
+DROP FIELD CUSTPROFILEID FROM TEMP_T_SVC_RO_INV_MSTR;
+LET VROW = NoOfRows('TEMP_T_SVC_RO_INV_MSTR');
+TRACE $(VROW);
+
+// ---------- combine section 1 and section 2 -----------------------------------
+
+Concatenate(OUTSTANDING_AMT)
+Load * resident TEMP_T_SVC_RO_INV_MSTR;
+DROP TABLE TEMP_T_SVC_RO_INV_MSTR;
+
+//-------------------------------------------------- Get Advisor Name -------------------
+
+LEFT Join(OUTSTANDING_AMT)
+T_SVC_ADVISOR_MSTR:
+Load Distinct
+    STAFFID as SVCADVISORID,
+    OUTLETID,
+    SVCADVISORNAME
+FROM [lib://PSS/T_SVC_ADVISOR_MSTR/*.qvd]
+(qvd);
+
+DROP FIELDS ROID, STATUS FROM OUTSTANDING_AMT;
+
+LET VROW = NoOfRows('OUTSTANDING_AMT');
+TRACE $(VROW);
+
+//-------------------------------------------------- section 3 -------------------
+
+T_PI_PRO_INVPAY_MSTR:
+LOAD
+//    PROINVID,
+    PROINVNO as ROINVNO,
+    Null() as INSCOMPID,
+//     OUTLETID,
+//     OUTLETCODE,
+	Date(INVDATE,'DD/MM/YYYY') as ROINVDATE,
+    Today() -Left(INVDATE,10) as Aging,
+//    INVDATE as ROINVDATE,
+    PROID,
+//     PRONO,
+//     CUSTID,
+     CUSTNAME,
+//     CUSTNO,
+//     CUSTGRP,
+//     DISCPERCENT,
+//     INVAMT,
+//     TAXPERCENT,
+//     TAXAMT,
+//    ROUNDINGAMT as ROUNDINGADJAMOUNT_PRO,
+//    FINALINVAMT as TOTALAMTPAYABLE_PRO,
+//     PAYMENTDATE,
+//    PAYMENTDISCAMT as adddiscount_PRO,
+//     PAYMENTMODEID,
+//     PAYMENTREMARKS,
+//     PAYMENTDOCNO,
+//     PAYMENTAMT,
+//     PAYMENTBY,
+//     PAYMENTDATETIME,
+//     STATUS,
+//     CREATEDBY,
+//     CREATEDDATETIME,
+//     UPDATEDBY,
+//     UPDATEDDATETIME,
+//     BANKAPPNO,
+//     CARDHOLDER,
+//     PAIDAMOUNT,
+     OUTSTANDINGAMOUNT,
+     INVAMTWOGST as SUBTOTAL,
+//     GSTDISCAMT,
+ //   GSTBEFOREDISCAMT as GSTAMOUNT_PRO,
+//    EDISCAMT as EDISCAMT_PRO,
+    TTLINVAMT as TOTALAMOUNT,
+//    TTLEVAMT as EVAMOUNT_PRO
+     TAXMETHOD,
+     'PRI' AS ROINVTYPECODE,
+     'PRO' AS INVTYPE,
+     '' AS ACTIONTAKEN
+//     WRITEOFFBY,
+//     WRITEOFFDATETIME,
+//     WRITEOFFREMARKS,
+//     PAYMENTTYPE,
+//     APPROVEDBY,
+//     APPROVEDDATETIME,
+//     APPROVALREMARKS,
+//     OTHERALLDISC,
+//     OTHERALLDISCPERC,
+//     INTFLAG
+FROM [lib://PSS/T_PI_PRO_INVPAY_MSTR/*.qvd]
+(qvd)
+where STATUS = 'D' AND PAYMENTTYPE = 'D'AND OUTSTANDINGAMOUNT <>0 AND LEN(TRIM(WRITEOFFREMARKS))=0;
+
+LET VROW = NoOfRows('T_PI_PRO_INVPAY_MSTR');
+TRACE $(VROW);
+
+inner join (T_PI_PRO_INVPAY_MSTR)
+T_PI_PRO_MSTR:
+LOAD
+    PROID,
+    REGNO,
+    PRONO AS RONO,
+    CREATEDBY as USERID,
+    CREATEDBY AS SVCADVISORID,   
+    OUTLETID
+FROM [lib://PSS/T_PI_PRO_MSTR/*.qvd]
+(qvd);
+
+// LEFT JOIN (T_PI_PRO_INVPAY_MSTR)
+// LOAD Distinct
+//     OUTLETCODE,
+//     OUTLETNAME,
+//     OUTLETID
+// FROM [lib://Transform/D_OUTLET_MSTR.qvd]
+// (qvd);
+
+LEFT JOIN (T_PI_PRO_INVPAY_MSTR)
+T_USER_MSTR:
+LOAD
+    USERID,
+    USERNAME as SVCADVISORNAME
+FROM [lib://PSS/T_USER_MSTR/*.qvd]
+(qvd);
+
+LET VROW = NoOfRows('T_PI_PRO_INVPAY_MSTR');
+TRACE $(VROW);
+
+DROP FIELDS USERID, PROID FROM T_PI_PRO_INVPAY_MSTR;
+
+Concatenate(OUTSTANDING_AMT)
+Load * resident T_PI_PRO_INVPAY_MSTR;
+DROP TABLE T_PI_PRO_INVPAY_MSTR;
+
+Temp_OUTSTANDING_AMT:
+Load *,
+	date(today(),'DD/MM/YYYY') as SnapShotDate
+Resident OUTSTANDING_AMT;
+drop Table OUTSTANDING_AMT;
+
+OUSTANDING_GRP:
+LOAD * INLINE [
+    MIN, MAX, OUTSTANDING_GRP, OUTSTANDING_SORT
+    0, 30, 0 to 30 Days, 1
+    31, 60, 31 to 60 Days, 2
+    61, 90, 61 to 90 Days, 3
+    91, 1000000, >=91 Days, 4
+];
+
+Join (Temp_OUTSTANDING_AMT)
+IntervalMatch (Aging) 
+LOAD MIN, MAX  
+RESIDENT OUSTANDING_GRP;
+
+Join (Temp_OUTSTANDING_AMT) 
+LOAD * Resident OUSTANDING_GRP;
+
+DROP Table OUSTANDING_GRP;  
+
+
+let vYearMonth = Date(today(),'YYYYMM');
+
+Store Temp_OUTSTANDING_AMT into [lib://Transform/Outstanding_$(vYearMonth).qvd] (qvd);
+// exit script;
